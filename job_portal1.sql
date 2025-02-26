@@ -17,6 +17,32 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
+-- Made by Shabbir Ahmad
+-- Dumping structure for table job_portal.users
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `email` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `dob` date NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Dumping data for table job_portal.users: ~2 rows (approximately)
+INSERT INTO `users` (`id`, `email`, `password`, `username`, `dob`, `created_at`, `updated_at`) VALUES
+	(1, 'john@example.com', '$2b$10$YfxB1EwfZh.hSq3pU1lxI.ulQI9HRJz9GJ41uR3NCvQTBk8FNB82K', 'johndoe', '1990-01-15', '2025-02-21 20:01:21', '2025-02-21 20:01:21'),
+	(2, 'jane@example.com', '$2b$10$YfxB1EwfZh.hSq3pU1lxI.ulQI9HRJz9GJ41uR3NCvQTBk8FNB82K', 'janedoe', '1992-03-20', '2025-02-21 20:01:21', '2025-02-21 20:01:21'),
+	(3, 'user@123.com', '$2b$10$VYB6h8NfbaK7YCnw2VTKw.YnbSgR.3K0XbNdqQLAL.N95sl6gdmvi', 'user_123', '2025-02-22', '2025-02-21 20:10:41', '2025-02-21 20:10:41');
+
+/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
+/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
+/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
+
 --
 -- Database: `job_portal1`
 --
