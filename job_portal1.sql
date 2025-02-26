@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS `jobs` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dumping data for table job_portal.jobs: ~3 rows (approximately)
 INSERT INTO `jobs` (`id`, `title`, `company`, `location`, `type`, `description`, `requirements`, `salary`, `skills`, `created_at`, `updated_at`) VALUES
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS `saved_jobs` (
   KEY `job_id` (`job_id`),
   CONSTRAINT `saved_jobs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `saved_jobs_ibfk_2` FOREIGN KEY (`job_id`) REFERENCES `jobs` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dumping data for table job_portal.saved_jobs: ~2 rows (approximately)
 INSERT INTO `saved_jobs` (`id`, `user_id`, `job_id`, `created_at`) VALUES
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dumping data for table job_portal.users: ~2 rows (approximately)
 INSERT INTO `users` (`id`, `email`, `password`, `username`, `dob`, `created_at`, `updated_at`) VALUES
