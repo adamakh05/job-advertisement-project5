@@ -145,6 +145,70 @@ app.post(
 );
 
 // Login endpoint
+app.post(
+  '/auth/login',
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+          status: 'error',
+          errors: errors.array() 
+        });
+      }
+
+      const { email, password } = req.body;
+      console.log(email);
+      const [users] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
+      console.log(users);
+      if (users.length === 0) {
+        return res.status(401).json({ 
+          status: 'error',
+          message: 'Invalid credentials' 
+        });
+      }
+
+      const user = users[0];
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      
+      if (!passwordMatch) {
+        console.log('password not match');
+        return res.status(401).json({ 
+          status: 'error',
+          message: 'Invalid credentials' 
+        });
+      }
+
+      const userData = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        dob: user.dob
+      };
+
+      const token = jwt.sign(userData, JWT_SECRET, { expiresIn: '1h' });
+      
+      res.json({
+        status: 'success',
+        message: 'Login successful',
+        data: {
+          user: userData,
+          token
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'Login failed' 
+      });
+    }
+  }
+);
 
 // Jobs routes
 app.get('/api/jobs', async (req, res) => {
