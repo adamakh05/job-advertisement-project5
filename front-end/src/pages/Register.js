@@ -1,4 +1,6 @@
-
+import React, { useState } from 'react';
+import { Box, Typography, TextField, Button, Paper, Avatar, Grid, Stepper, Step, StepLabel } from '@mui/material';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
 function RegisterForm() {
     const [activeStep, setActiveStep] = useState(0);
