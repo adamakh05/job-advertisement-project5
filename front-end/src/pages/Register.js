@@ -17,15 +17,7 @@ function RegisterForm() {
     const validateStep = () => {
         const newErrors = {};
         
-        if (activeStep === 0) {
-            if (!email) newErrors.email = 'Email is required';
-            else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Invalid email format';
-            if (!password) newErrors.password = 'Password is required';
-            else if (password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-        } else if (activeStep === 1) {
-            if (!username) newErrors.username = 'Username is required';
-            if (!dob) newErrors.dob = 'Date of birth is required';
-        }
+        
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
