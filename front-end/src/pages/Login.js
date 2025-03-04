@@ -11,7 +11,10 @@ function LoginForm() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
 
         try {
             const response = await authService.login(email, password);
