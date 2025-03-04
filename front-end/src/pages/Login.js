@@ -198,54 +198,6 @@ const Login = () => {
                             mb: 2
                         }}
                     >
-                        <LockOutlinedIcon sx={{ fontSize: 32 }} />
-                    </Avatar>
-                    <Typography 
-                        component="h1" 
-                        variant="h4" 
-                        sx={{ 
-                            mb: 4, 
-                            fontWeight: 700,
-                            color: '#1a1a1a'
-                        }}
-                    >
-                        Welcome Back
-                    </Typography>
-                    <LoginForm />
-                </Box>
-                <Box sx={{ 
-                    mt: 2, 
-                    display: 'flex', 
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: 1
-                }}>
-                    <Typography variant="body2" color="text.secondary">
-                        Don't have an account?
-                    </Typography>
-                    <Typography 
-                        component="a" 
-                        href="/register" 
-                        variant="body2" 
-                        sx={{
-                            color: '#2196f3',
-                            textDecoration: 'none',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            '&:hover': {
-                                color: '#1976d2',
-                                textDecoration: 'underline',
-                            }
-                        }}
-                    >
-                        Register here
-                    </Typography>
-                </Box>
-            </Grid>
-        </Grid>
-    );
-};
 
-export default Login;
 
 
