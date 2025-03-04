@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Job portal",
+  "name": "Job Advertisement Portal",
   "icons": [
     {
       "src": "favicon.ico",
@@ -18,8 +18,8 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "start_url": ".", // starts from current directory
+  "display": "standalone", // opens in own window
+  "theme_color": "#000000", // black
+  "background_color": "#ffffff" // white
 }
