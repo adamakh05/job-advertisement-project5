@@ -1,15 +1,18 @@
 
-// Server
-require('dotenv').config();
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const multer = require('multer');
-const { body, validationResult } = require('express-validator');
+// Server - initialises node.js server using a MySQL database and JWT authentiction
 
+// imports
+require('dotenv').config(); // loads variables from .env files
+const express = require('express'); // web framework
+const path = require('path'); // handle file paths
+const cors = require('cors'); // enables frontend comms
+const mysql = require('mysql2/promise'); // MySQL client for node.js
+const bcrypt = require('bcrypt'); // hashes passwords
+const jwt = require('jsonwebtoken'); // authentication reasons
+const multer = require('multer'); // handles file uploads
+const { body, validationResult } = require('express-validator'); // validates user input
+
+// initialises express app
 const app = express();
 const port = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || '121212asasadqweqe1231';
@@ -40,15 +43,15 @@ async function testConnection() {
 }
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json()); // parses JSON and converts into JavaScript
+app.use(express.urlencoded({ extended: true })); // parses URL commands
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   credentials: true
 }));
 
 
-// JWT Authentication middleware
+// JWT Authentication middleware - if login credentials are correct, JWT token is generated and user is allowed into dashboard
 function authenticateToken(req, res, next) {
   try {
     const authHeader = req.headers['authorization'];
@@ -79,7 +82,7 @@ function authenticateToken(req, res, next) {
   }
 }
 
-// Register endpoint
+// Register endpoint - validates info, checks if credentials are already in database, and hashes password for security
 app.post(
   '/auth/register',
   [
@@ -210,30 +213,35 @@ app.post(
   }
 );
 
-// Jobs routes
+// Jobs routes - for user input in the search area of the dashboard
 app.get('/api/jobs', async (req, res) => {
   try {
     console.log(req.query);
     const { search, type, location, salary, skills } = req.query;
-    let query = 'SELECT * FROM jobs WHERE 1=1';
+    let query = 'SELECT * FROM jobs WHERE 1=1'; // initial query
     const params = [];
 
+    // searches for if the job title or company name is within the search keyword
     if (search) {
-      query += ' AND (LOWER(title) LIKE ? OR LOWER(company) LIKE ?)';
-      params.push(`%${search.toLowerCase()}%`, `%${search.toLowerCase()}%`);
+      query += ' AND (LOWER(title) LIKE ? OR LOWER(company) LIKE ?)'; // appends query
+      params.push(`%${search.toLowerCase()}%`, `%${search.toLowerCase()}%`); // allows partial matches
     }
+    // searches for if type is within the search keyword
     if (type) {
       query += ' AND type = ?';
       params.push(type);
     }
+    // searches for if location is within the search keyword
     if (location) {
       query += ' AND LOWER(location) LIKE ?';
       params.push(`%${location.toLowerCase()}%`);
     }
+    // searches for if salary is within the keyword
     if (salary) {
       query += ' AND CAST(SUBSTRING_INDEX(salary, "k", 1) AS UNSIGNED) >= ?';
       params.push(parseInt(salary));
     }
+    // searches for if skills is within the keyword
     if (skills) {
       skills.split(',').forEach(skill => {
         query += ' AND LOWER(skills) LIKE ?';
