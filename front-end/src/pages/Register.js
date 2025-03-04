@@ -1,16 +1,4 @@
-import React, { useState } from 'react';
-import { Box, Typography, TextField, Button, Paper, Avatar, Grid, Stepper, Step, StepLabel } from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
-function RegisterForm() {
-    const [activeStep, setActiveStep] = useState(0);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [username, setUsername] = useState('');
-    const [dob, setDob] = useState('');
-    const [errors, setErrors] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [success, setSuccess] = useState('');
 
     const steps = ['Account Details', 'Personal Information', 'Confirmation'];
 
