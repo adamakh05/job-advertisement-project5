@@ -332,5 +332,44 @@ app.post('/api/jobs/:jobId/save', authenticateToken, async (req, res) => {
     });
   }
 });
+app.get('/api/saved-jobs', authenticateToken, async (req, res) => {
+  try {
+    const [savedJobs] = await pool.execute(
+      'SELECT job_id FROM saved_jobs WHERE user_id = ?',
+      [req.user.id]
+    );
+    res.json({
+      status: 'success',
+      data: savedJobs.map(job => job.job_id)
+    });
+  } catch (error) {
+    console.error('Error fetching saved jobs:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: 'Failed to fetch saved jobs' 
+    });
+  }
+});
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    status: 'error',
+    message: 'Something went wrong!' 
+  });
+});
 
+// Start server after checking database connection
+async function startServer() {
+  const isConnected = await testConnection();
+  if (isConnected) {
+    app.listen(port, () => {
+      console.log(`✅ Server is running on port ${port}`);
+    });
+  } else {
+    console.error('❌ Server startup failed due to database connection error');
+    process.exit(1);
+  }
+}
+
+startServer();
 
