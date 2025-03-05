@@ -17,7 +17,7 @@ function RegisterForm() {
     const validateStep = () => {
         const newErrors = {};
         
-        if (activeStep === 0) {
+        if (activeStep === 0) { // ensures fields are not empty and email and password follow regulations
             if (!email) newErrors.email = 'Email is required';
             else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Invalid email format';
             if (!password) newErrors.password = 'Password is required';
@@ -31,18 +31,18 @@ function RegisterForm() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleNext = () => {
+    const handleNext = () => { // calls next form if current form has been validated
         if (validateStep()) {
             setActiveStep((prevActiveStep) => prevActiveStep + 1);
         }
     };
 
-    const handleBack = () => {
+    const handleBack = () => { // moves form back to previous step
         setActiveStep((prevActiveStep) => prevActiveStep - 1);
         setErrors({});
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => { // submits form if all steps have been validated
         e.preventDefault();
         if (!validateStep()) return;
 
@@ -56,16 +56,14 @@ function RegisterForm() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password, username, dob }),
+                body: JSON.stringify({ email, password, username, dob }), // submits data as POST
             });
             
             const data = await response.json();
             
             if (response.ok) {
-                setSuccess(data.message);
-                // You might want to store the token and redirect
+                setSuccess(data.message); // message confirming registration is successful
                 localStorage.setItem('token', data.data.token);
-                // Add navigation here if needed
             } else {
                 if (data.errors) {
                     const formattedErrors = {};
@@ -84,7 +82,7 @@ function RegisterForm() {
         }
     };
 
-    return (
+    return ( // confirmation page for the user to confirm email, username and password
         <Box sx={{ width: '100%', maxWidth: '400px' }}>
             <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
                 {steps.map((label) => (
@@ -203,7 +201,7 @@ function RegisterForm() {
                         {success}
                     </Typography>
                 )}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}> // buttons for back and submit
                     <Button
                         disabled={activeStep === 0}
                         onClick={handleBack}
