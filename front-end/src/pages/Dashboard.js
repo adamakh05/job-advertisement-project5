@@ -1,3 +1,4 @@
+// imports from react
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
@@ -45,22 +46,24 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
+// filters available to user
 const defaultFilters = {
   type: '',
   location: '',
   salary: 0,
   skills: [],
 };
-const allSkills = ['React', 'JavaScript', 'CSS', 'HTML', 'TypeScript', 'Node.js'];
+const allSkills = ['React', 'JavaScript', 'CSS', 'HTML', 'TypeScript', 'Node.js']; // skills available to user
 
 const parseSalary = (salaryStr) => {
-  const match = salaryStr.match(/\$?(\d+)[kK]/);
-  return match ? parseInt(match[1]) * 1000 : 0;
+  const match = salaryStr.match(/\$?(\d+)[kK]/); //pattern which salary must match. may contain dollar sign, contains digits, may contain k to represent 'thousand'
+  return match ? parseInt(match[1]) * 1000 : 0; // multiplies input by 1000 if input contains k
 };
 
-// Styled components
+// applies custom CSS to a card component
 const StyledCard = motion(styled(Card)(({ theme }) => ({
   transition: 'transform 0.3s, box-shadow 0.3s',
+  // features which will occur when mouse hovers over card. the card will slightly move up and will have a 'stronger' shadow
   '&:hover': {
     transform: 'translateY(-8px)',
     boxShadow: theme.shadows[6],
@@ -72,24 +75,26 @@ const StyledCard = motion(styled(Card)(({ theme }) => ({
   position: 'relative',
 })));
 
+// custom style for box component
 const HeaderBox = styled(Box)(({ theme }) => ({
-  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`, // gradient background
   padding: theme.spacing(4, 2, 8),
-  color: theme.palette.common.white,
+  color: theme.palette.common.white, // text displayed in white
   position: 'relative',
   overflow: 'hidden',
 }));
 
 const SearchBox = styled(motion.div)(({ theme }) => ({
-  background: theme.palette.background.paper,
+  background: theme.palette.background.paper, // light background
   padding: theme.spacing(3),
-  borderRadius: theme.shape.borderRadius * 2,
+  borderRadius: theme.shape.borderRadius * 2, // rounded corners on search box
   boxShadow: theme.shadows[2],
   marginTop: theme.spacing(2),
   position: 'relative',
   zIndex: 1,
 }));
 
+// specifies components of the job card including: background, image logo, save job,
 const JobCard = ({ job, isSaved, onToggleSave, onOpenJobDetails, onSkillClick }) => {
   return (
     <StyledCard initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
@@ -102,6 +107,7 @@ const JobCard = ({ job, isSaved, onToggleSave, onOpenJobDetails, onSkillClick })
           sx={{ objectPosition: 'top' }}
           onError={(e) => (e.target.src = 'https://via.placeholder.com/400x200?text=No+Image')}
         />
+          
         <IconButton
           sx={{ position: 'absolute', top: 8, right: 8 }}
           onClick={() => onToggleSave(job.id)}
@@ -110,7 +116,7 @@ const JobCard = ({ job, isSaved, onToggleSave, onOpenJobDetails, onSkillClick })
           {isSaved ? <Bookmark color="primary" /> : <BookmarkBorder sx={{ color: 'common.white' }} />}
         </IconButton>
       </Box>
-
+// sets text components such as, job title and company
       <CardContent sx={{ flexGrow: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Avatar
@@ -131,7 +137,7 @@ const JobCard = ({ job, isSaved, onToggleSave, onOpenJobDetails, onSkillClick })
         <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
           {job.title}
         </Typography>
-
+// box component to show the required skills for job
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
         {String(job.skills).split(',').slice(0, 3).map((skill, i) => (
             <Chip
@@ -153,7 +159,7 @@ const JobCard = ({ job, isSaved, onToggleSave, onOpenJobDetails, onSkillClick })
         </Box>
 
         <Divider sx={{ my: 2 }} />
-
+// component to show the job type and salary offered
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Work sx={{ mr: 0.5, color: 'text.secondary' }} />
@@ -165,7 +171,7 @@ const JobCard = ({ job, isSaved, onToggleSave, onOpenJobDetails, onSkillClick })
           </Box>
         </Box>
       </CardContent>
-
+// button which opens job details page
       <Box sx={{ p: 2 }}>
         <Button
           fullWidth
@@ -180,7 +186,7 @@ const JobCard = ({ job, isSaved, onToggleSave, onOpenJobDetails, onSkillClick })
     </StyledCard>
   );
 };
-
+// variables
 const Dashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -200,7 +206,7 @@ const Dashboard = () => {
     email: '',
     coverLetter: ''
   });
-
+// fetches job listings based on filters entered
   useEffect(() => {
     const fetchJobs = async () => {
       try {
@@ -233,11 +239,12 @@ const Dashboard = () => {
     fetchJobs();
   }, [searchTerm, filters]);
 
+  // sets saved jobs into state
   useEffect(() => {
     const fetchSavedJobs = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) return;
+        if (!token) return; // ensures user is logged in
 
         const response = await fetch('/api/saved-jobs', {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -254,7 +261,7 @@ const Dashboard = () => {
 
     fetchSavedJobs();
   }, []);
-
+// button for when user wants to apply to job, opens application dialog
   const handleApplyClick = (jobId) => {
     setSelectedJobId(jobId);
     setApplyDialogOpen(true);
@@ -262,19 +269,19 @@ const Dashboard = () => {
   
   const handleApplicationSubmit = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token'); // confirms user is logged in
       if (!token) {
-        setSnackbarOpen(true);
+        setSnackbarOpen(true); // error message, confirming to users they must be logged in
         return;
       }
 
       const response = await fetch(`http://localhost:5000/api/jobs/${selectedJobId}/apply`, {
-        method: 'POST',
+        method: 'POST', // submitting data
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`, // ensure user is logged in
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
+        body: JSON.stringify({ // submits user's name, email and cover letter
           name: applicationData.name,
           email: applicationData.email,
           coverLetter: applicationData.coverLetter
@@ -283,9 +290,9 @@ const Dashboard = () => {
 
       const data = await response.json();
       if (data.status === 'success') {
-        setSnackbarOpen(true);
-        setApplyDialogOpen(false);
-        setApplicationData({
+        setSnackbarOpen(true); // show 'application successful' message.
+        setApplyDialogOpen(false); // close form
+        setApplicationData({ // reset to default (empty)
           name: '',
           email: '',
           coverLetter: ''
@@ -297,27 +304,27 @@ const Dashboard = () => {
       console.error('Application error:', error);
     }
   };
-
+// save/unsave a job
   const toggleSaveJob = async (jobId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token'); // ensures user is logged in
       if (!token) {
-        setSnackbarOpen(true);
+        setSnackbarOpen(true); // error message, user must be logged in.
         return;
       }
 
       const response = await fetch(`/api/jobs/${jobId}/save`, {
-        method: 'POST',
+        method: 'POST', // sends job ID data to savedjobs table
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
 
       if (data.status === 'success') {
-        setSavedJobs(prev => new Set(prev.has(jobId) ? 
+        setSavedJobs(prev => new Set(prev.has(jobId) ? //adds/removes jobID from set
           [...prev].filter(id => id !== jobId) : 
           [...prev, jobId]
         ));
-        setSnackbarOpen(true);
+        setSnackbarOpen(true); // sends success message to the user
       } else {
         console.error('Error toggling save:', data.message);
       }
@@ -326,40 +333,40 @@ const Dashboard = () => {
     }
   };
 
-  // Memoized job filtering
+  // Memoized job filtering - will only recompute the filtered list when changes are made to filters
   const filteredJobs = useMemo(
     () =>
       jobs.filter((job) => {
         const searchMatch = `${job.title} ${job.company}`
           .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-        const typeMatch = !filters.type || job.type === filters.type;
+          .includes(searchTerm.toLowerCase()); // checks to see if job title or company has a match
+        const typeMatch = !filters.type || job.type === filters.type; // checks if jobs match the filtered type, if a type has been selected
         const locationMatch =
           !filters.location ||
-          job.location.toLowerCase().includes(filters.location.toLowerCase());
-        const salaryMatch = parseSalary(job.salary) >= filters.salary;
+          job.location.toLowerCase().includes(filters.location.toLowerCase()); // checks to see if jobs match the location filter
+        const salaryMatch = parseSalary(job.salary) >= filters.salary; // checks to see if jo contains salary greater or equal to filter
         const skillsMatch =
           !filters.skills.length ||
-          filters.skills.every((skill) => job.skills.includes(skill));
-        return searchMatch && typeMatch && locationMatch && salaryMatch && skillsMatch;
+          filters.skills.every((skill) => job.skills.includes(skill)); // checks to see if jobs match the skills filter
+        return searchMatch && typeMatch && locationMatch && salaryMatch && skillsMatch; // returns available jobs
       }),
     [jobs, searchTerm, filters]
   );
 
 
-  const toggleDrawer = (open) => () => setIsDrawerOpen(open);
-  const openJobDetails = (job) => setSelectedJob(job);
-  const closeJobDetails = () => setSelectedJob(null);
+  const toggleDrawer = (open) => () => setIsDrawerOpen(open); // determines state of side panel
+  const openJobDetails = (job) => setSelectedJob(job); // displays specific job details
+  const closeJobDetails = () => setSelectedJob(null); // resets above variable to null
   const addSkillFilter = (skill) =>
     setFilters((prev) => ({
       ...prev,
       skills: prev.skills.includes(skill) ? prev.skills : [...prev.skills, skill],
-    }));
-  const clearFilters = () => {
+    })); // adds skill to filter list
+  const clearFilters = () => { // clears filters
     setFilters(defaultFilters);
     setSearchTerm('');
   };
-  const handleSnackbarClose = () => setSnackbarOpen(false);
+  const handleSnackbarClose = () => setSnackbarOpen(false); // closes pop-up message
 
   // Filter Panel Component inside Drawer
   const FilterPanel = () => (
@@ -374,17 +381,17 @@ const Dashboard = () => {
       </Box>
       <Divider sx={{ mb: 2 }} />
       <Box component="form" noValidate autoComplete="off">
-        <TextField
+        <TextField // textfield to allow the user to enter a location
           fullWidth
           variant="outlined"
           label="Location"
           value={filters.location}
           onChange={(e) => setFilters((prev) => ({ ...prev, location: e.target.value }))}
-          sx={{ mb: 2 }}
+          sx={{ mb: 2 }} // updates as the user enters input
         />
         <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
           <InputLabel id="job-type-label">Job Type</InputLabel>
-          <Select
+          <Select // drop down menu showing all possible job types
             labelId="job-type-label"
             label="Job Type"
             value={filters.type}
@@ -398,9 +405,9 @@ const Dashboard = () => {
           </Select>
         </FormControl>
         <Typography gutterBottom>Minimum Salary ($)</Typography>
-        <Slider
+        <Slider // adds slider element whih is used to determine the desired salary
           value={typeof filters.salary === 'number' ? filters.salary : 0}
-          onChange={(e, newValue) => setFilters((prev) => ({ ...prev, salary: newValue }))}
+          onChange={(e, newValue) => setFilters((prev) => ({ ...prev, salary: newValue }))} // updates available jobs as the user changes salary requirements
           aria-labelledby="salary-slider"
           valueLabelDisplay="auto"
           step={5000}
@@ -409,17 +416,17 @@ const Dashboard = () => {
           max={200000}
           sx={{ mb: 2 }}
         />
-        <Autocomplete
+        <Autocomplete // user can select from a multitude of skills
           multiple
           options={allSkills}
           value={filters.skills}
-          onChange={(e, newValue) => setFilters((prev) => ({ ...prev, skills: newValue }))}
+          onChange={(e, newValue) => setFilters((prev) => ({ ...prev, skills: newValue }))} // available jobs change as the user selects/removes skills
           renderInput={(params) => (
             <TextField {...params} variant="outlined" label="Skills" placeholder="Select skills" />
           )}
           sx={{ mb: 2 }}
         />
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2 }}> // reset filters button and apply filters button
           <Button fullWidth variant="outlined" onClick={clearFilters} aria-label="Reset filters">
             Reset
           </Button>
@@ -431,7 +438,7 @@ const Dashboard = () => {
     </Box>
   );
 
-  return (
+  return ( // header components
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <HeaderBox>
         <Container sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -462,11 +469,11 @@ const Dashboard = () => {
       </HeaderBox>
 
       <Container sx={{ py: 4 }}>
-        {loading ? (
+        {loading ? ( // checks if portal is in a loading state
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress />
           </Box>
-        ) : error ? (
+        ) : error ? ( // checks for error, if error is present, error message will show with a retry button
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>
             <Button variant="outlined" onClick={() => window.location.reload()}>
@@ -474,8 +481,8 @@ const Dashboard = () => {
             </Button>
           </Box>
         ) : (
-          <Grid container spacing={3}>
-            {jobs.map((job) => (
+          <Grid container spacing={3}> // organises job cards in a grid format
+            {jobs.map((job) => ( // ensures each element in the job array has a card
               <Grid item xs={12} sm={6} lg={4} key={job.id}>
                 <JobCard
                   job={job}
@@ -488,7 +495,7 @@ const Dashboard = () => {
             ))}
           </Grid>
         )}
-
+// displays message if: loading has finished, there is no error and no jobs match filter criteria
         {!loading && !error && jobs.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography variant="h6" color="text.secondary">
@@ -511,7 +518,7 @@ const Dashboard = () => {
       >
         <FilterPanel />
       </Drawer>
-
+// components of the dialog that is opened when a user clicks on a specific job
       {/* Job Details Dialog */}
       <Dialog open={Boolean(selectedJob)} onClose={closeJobDetails} fullWidth maxWidth="sm">
         {selectedJob && (
@@ -539,7 +546,7 @@ const Dashboard = () => {
               </Box>
             </DialogContent>
             <DialogActions>
-        <Button onClick={closeJobDetails} color="primary">
+        <Button onClick={closeJobDetails} color="primary"> // buttons to close and apply
           Close
         </Button>
         <Button 
@@ -552,7 +559,7 @@ const Dashboard = () => {
           </>
         )}
       </Dialog>
-
+// dialog for when user clicks apply button. 
       <Dialog open={applyDialogOpen} onClose={() => setApplyDialogOpen(false)} fullWidth maxWidth="sm">
   <DialogTitle>Apply for Job</DialogTitle>
   <DialogContent dividers>
@@ -589,7 +596,7 @@ const Dashboard = () => {
     />
     
   </DialogContent>
-  <DialogActions>
+  <DialogActions> // submit and cancel buttons
     <Button onClick={() => setApplyDialogOpen(false)}>
       Cancel
     </Button>
