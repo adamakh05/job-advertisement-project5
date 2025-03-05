@@ -12,16 +12,16 @@ function LoginForm() {
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
+        e.preventDefault(); // prevents default form from being submitted
+        setError(''); // clears previous error messages
         setLoading(true);
 
         try {
             const response = await authService.login(email, password);
             console.log('Login successful:', response);
-            navigate('/dashboard');
+            navigate('/dashboard'); // if successful, user is directed to dashboard page
         } catch (err) {
-            setError(err.message || 'Failed to login. Please check your credentials.');
+            setError(err.message || 'Failed to login. Please check your credentials.'); // error message and user is directed to try again
         } finally {
             setLoading(false);
         }
