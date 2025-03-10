@@ -1,4 +1,32 @@
+// Server - initialises node.js server using a MySQL database and JWT authentiction
 
+// imports
+require('dotenv').config(); // loads variables from .env files
+const express = require('express'); // web framework
+const path = require('path'); // handle file paths
+const cors = require('cors'); // enables frontend comms
+const mysql = require('mysql2/promise'); // MySQL client for node.js
+const bcrypt = require('bcrypt'); // hashes passwords
+const jwt = require('jsonwebtoken'); // authentication reasons
+const multer = require('multer'); // handles file uploads
+const { body, validationResult } = require('express-validator'); // validates user input
+
+// initialises express app
+const app = express();
+const port = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || '121212asasadqweqe1231';
+
+// Create MySQL connection pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'job_portal',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
 // Test database connection
 async function testConnection() {
