@@ -40,3 +40,32 @@ INSERT INTO applications (id, job_id, user_id, name, email, cover_letter, status
   (14, 1, 3, 'ssss', 'sss@ss.com', 'ssss', 'PENDING'),
   (15, 7, 3, 'ssss', 'sss@ss.com', 'ssss', 'PENDING'),
   (16, 7, 3, 'sssss', 'sss@ss.com', 'ssss', 'PENDING');
+
+-- Create `jobs` table
+CREATE TABLE jobs (
+  id INT NOT NULL AUTO_INCREMENT,
+  title VARCHAR(255) NOT NULL,
+  company VARCHAR(255) NOT NULL,
+  location VARCHAR(255) NOT NULL,
+  type ENUM('FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP') NOT NULL,
+  salary VARCHAR(50),
+  PRIMARY KEY (id)
+);
+
+-- Populate `jobs` table
+INSERT INTO jobs (id, title, company, location, type, salary) VALUES
+  (1, 'Senior Frontend Developer', 'TechCorp', 'New York, NY', 'FULL_TIME', '120k - 150k'),
+  (2, 'Backend Engineer', 'DataSys', 'Remote', 'FULL_TIME', '100k - 130k'),
+  (7, 'ss', 'sss', 'ss', 'INTERNSHIP', '12');
+
+-- Create `saved_jobs` table
+CREATE TABLE saved_jobs (
+  id INT NOT NULL AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  job_id INT NOT NULL,
+  PRIMARY KEY (id)
+);
+
+-- Populate `saved_jobs` table
+INSERT INTO saved_jobs (id, user_id, job_id) VALUES
+  (9, 3, 2);
