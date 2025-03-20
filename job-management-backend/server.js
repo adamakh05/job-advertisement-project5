@@ -1,22 +1,19 @@
-// Server - initialises node.js server using a MySQL database and JWT authentiction
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const mysql = require('mysql2/promise');
+const bcrypt = require('bcrypt');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
 
-// imports
-require('dotenv').config(); // loads variables from .env files
-const express = require('express'); // web framework
-const path = require('path'); // handle file paths
-const cors = require('cors'); // enables frontend comms
-const mysql = require('mysql2/promise'); // MySQL client for node.js
-const bcrypt = require('bcrypt'); // hashes passwords
-const jwt = require('jsonwebtoken'); // authentication reasons
-const multer = require('multer'); // handles file uploads
-const { body, validationResult } = require('express-validator'); // validates user input
-
-// initialises express app
 const app = express();
 const port = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || '121212asasadqweqe1231';
 
-// Create MySQL connection pool
+// MySQL Connection Pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
@@ -28,7 +25,7 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// Test database connection
+// Database connection test
 async function testConnection() {
   try {
     const connection = await pool.getConnection();
@@ -42,46 +39,58 @@ async function testConnection() {
 }
 
 // Middleware
-app.use(express.json()); // parses JSON and converts into JavaScript
-app.use(express.urlencoded({ extended: true })); // parses URL commands
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   credentials: true
 }));
 
-
-// JWT Authentication middleware - if login credentials are correct, JWT token is generated and user is allowed into dashboard
 function authenticateToken(req, res, next) {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    
+    console.log('Received Token:', token);
+
+
     if (!token) {
-      return res.status(401).json({ 
-        status: 'error',
-        message: 'Access denied. No token provided.' 
-      });
+      return res.status(401).json({ status: 'error', message: 'Access denied. No token provided.' });
     }
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
+      console.log(err);
       if (err) {
-        return res.status(403).json({ 
-          status: 'error',
-          message: 'Invalid or expired token' 
-        });
+        return res.status(403).json({ status: 'error', message: 'Invalid or expired token' });
       }
       req.user = user;
       next();
     });
   } catch (error) {
-    res.status(500).json({ 
-      status: 'error',
-      message: 'Authentication error' 
-    });
+    res.status(500).json({ status: 'error', message: 'Authentication error' });
   }
 }
 
-// Register endpoint - validates info, checks if credentials are already in database, and hashes password for security
+function requireAdmin(req, res, next) {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res
+      .status(403)
+      .json({ status: 'error', message: 'Admin privileges required' });
+  }
+}
+
+function requireUser(req, res, next) {
+  if (req.user) {
+    next();
+  } else {
+    res
+      .status(403)
+      .json({ status: 'error', message: 'User privileges required' });
+  }
+}
+
+// Register Endpoint
 app.post(
   '/auth/register',
   [
@@ -94,59 +103,43 @@ app.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ 
-          status: 'error',
-          errors: errors.array() 
-        });
+        return res.status(400).json({ status: 'error', errors: errors.array() });
       }
 
       const { email, password, username, dob } = req.body;
 
-      // Check if user exists
       const [existing] = await pool.execute('SELECT id FROM users WHERE email = ?', [email]);
       if (existing.length > 0) {
-        return res.status(400).json({ 
-          status: 'error',
-          message: 'User already exists' 
-        });
+        return res.status(400).json({ status: 'error', message: 'User already exists' });
       }
 
-      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
-      
-      // Insert user
+
       const [result] = await pool.execute(
         'INSERT INTO users (email, password, username, dob) VALUES (?, ?, ?, ?)',
         [email, hashedPassword, username, dob]
       );
-      
-      // Get user data
+
       const [user] = await pool.execute(
         'SELECT id, email, username, dob FROM users WHERE id = ?',
         [result.insertId]
       );
 
       const token = jwt.sign(user[0], JWT_SECRET, { expiresIn: '1h' });
-      
+
       res.status(201).json({
         status: 'success',
         message: 'Registration successful',
-        data: {
-          user: user[0],
-          token
-        }
+        data: { user: user[0], token }
       });
     } catch (error) {
       console.error('Registration error:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'Registration failed' 
-      });
+      res.status(500).json({ status: 'error', message: 'Registration failed' });
     }
   }
 );
 
-// Login endpoint
+// Login Endpoint
 app.post(
   '/auth/login',
   [
@@ -157,32 +150,27 @@ app.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ 
-          status: 'error',
-          errors: errors.array() 
-        });
+        return res.status(400).json({ status: 'error', errors: errors.array() });
       }
 
       const { email, password } = req.body;
-      console.log(email);
+
       const [users] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
-      console.log(users);
       if (users.length === 0) {
-        return res.status(401).json({ 
-          status: 'error',
-          message: 'Invalid credentials' 
-        });
+        return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
       }
 
-      const user = users[0];
-      const passwordMatch = await bcrypt.compare(password, user.password);
       
+      const user = users[0];
+
+      if (user.role !== 'user') {
+        return res
+          .status(403)
+          .json({ status: 'error', message: 'Not authorized as user' });
+      }
+      const passwordMatch = await bcrypt.compare(password, user.password);
       if (!passwordMatch) {
-        console.log('password not match');
-        return res.status(401).json({ 
-          status: 'error',
-          message: 'Invalid credentials' 
-        });
+        return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
       }
 
       const userData = {
@@ -193,54 +181,39 @@ app.post(
       };
 
       const token = jwt.sign(userData, JWT_SECRET, { expiresIn: '1h' });
-      
+
       res.json({
         status: 'success',
         message: 'Login successful',
-        data: {
-          user: userData,
-          token
-        }
+        data: { user: userData, token }
       });
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'Login failed' 
-      });
+      res.status(500).json({ status: 'error', message: 'Login failed' });
     }
   }
 );
 
-// Jobs routes - for user input in the search area of the dashboard
+
+// Get Jobs Endpoint
 app.get('/api/jobs', async (req, res) => {
   try {
-    console.log(req.query);
-    const { search, type, location, salary, skills } = req.query;
-    let query = 'SELECT * FROM jobs WHERE 1=1'; // initial query
+    const { search, type, location, skills } = req.query;
+    let query = 'SELECT * FROM jobs WHERE 1=1';
     const params = [];
 
-    // searches for if the job title or company name is within the search keyword
     if (search) {
-      query += ' AND (LOWER(title) LIKE ? OR LOWER(company) LIKE ?)'; // appends query
-      params.push(`%${search.toLowerCase()}%`, `%${search.toLowerCase()}%`); // allows partial matches
+      query += ' AND (LOWER(title) LIKE ? OR LOWER(company) LIKE ?)';
+      params.push(`%${search.toLowerCase()}%`, `%${search.toLowerCase()}%`);
     }
-    // searches for if type is within the search keyword
     if (type) {
       query += ' AND type = ?';
       params.push(type);
     }
-    // searches for if location is within the search keyword
     if (location) {
       query += ' AND LOWER(location) LIKE ?';
       params.push(`%${location.toLowerCase()}%`);
     }
-    // searches for if salary is within the keyword
-    if (salary) {
-      query += ' AND CAST(SUBSTRING_INDEX(salary, "k", 1) AS UNSIGNED) >= ?';
-      params.push(parseInt(salary));
-    }
-    // searches for if skills is within the keyword
     if (skills) {
       skills.split(',').forEach(skill => {
         query += ' AND LOWER(skills) LIKE ?';
@@ -248,70 +221,54 @@ app.get('/api/jobs', async (req, res) => {
       });
     }
 
-
-
     const [jobs] = await pool.execute(query, params);
-
-    console.log(jobs); 
-    res.setHeader('Content-Type', 'application/json'); 
-    res.json({
-      status: 'success',
-      data: jobs
-    });
+    res.json({ status: 'success', data: jobs });
   } catch (error) {
     console.error('Jobs fetch error:', error);
-    res.status(500).json({ 
-      status: 'error',
-      message: 'Failed to fetch jobs' 
-    });
+    res.status(500).json({ status: 'error', message: 'Failed to fetch jobs' });
   }
 });
 
-// Job application endpoint
-app.post('/api/jobs/:jobId/apply', authenticateToken, async (req, res) => {
-    try {
-      const { jobId } = req.params;
-      const { name, email, coverLetter } = req.body;
-      
-      // Validate required fields
-      if (!name || !email || !coverLetter) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Name, email and cover letter are required'
-        });
-      }
 
-      const [result] = await pool.execute(
-        'INSERT INTO applications (job_id, user_id, name, email, cover_letter) VALUES (?, ?, ?, ?, ?)',
-        [jobId, req.user.id, name, email, coverLetter]
-      );
-
-      res.status(201).json({
-        status: 'success',
-        message: 'Application submitted successfully',
-        data: {
-          id: result.insertId,
-          jobId,
-          name,
-          email,
-        }
-      });
-    } catch (error) {
-      console.error('Application submission error:', error);
-    }
+// Fetch Jobs Posted by the Logged-in User
+app.get('/api/user/jobs', authenticateToken, async (req, res) => {
+  try {
+    const [jobs] = await pool.execute(
+      'SELECT * FROM jobs WHERE user_id = ?',
+      [req.user.id]
+    );
+    res.json({ status: 'success', data: jobs });
+  } catch (error) {
+    console.error('Error fetching user jobs:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch user jobs' });
   }
-);
+});
 
-// Save/unsave job endpoint
+// Fetch User Profile
+app.get('/api/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const [user] = await pool.execute(
+      'SELECT id, email, username, dob FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    res.json({ status: 'success', data: user[0] });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch user profile' });
+  }
+});
+
+// Save/Unsave Job Endpoint
 app.post('/api/jobs/:jobId/save', authenticateToken, async (req, res) => {
   try {
+    console.log('User:', req.user);
     const { jobId } = req.params;
-    
+
     const [existing] = await pool.execute(
       'SELECT * FROM saved_jobs WHERE user_id = ? AND job_id = ?',
       [req.user.id, jobId]
     );
-    
+
     if (existing.length > 0) {
       await pool.execute(
         'DELETE FROM saved_jobs WHERE user_id = ? AND job_id = ?',
@@ -333,39 +290,483 @@ app.post('/api/jobs/:jobId/save', authenticateToken, async (req, res) => {
     }
   } catch (error) {
     console.error('Save/unsave job error:', error);
-    res.status(500).json({ 
-      status: 'error',
-      message: 'Failed to save/unsave job' 
-    });
+    res.status(500).json({ status: 'error', message: 'Failed to save/unsave job' });
   }
 });
+
+// Fetch Saved Jobs
 app.get('/api/saved-jobs', authenticateToken, async (req, res) => {
   try {
     const [savedJobs] = await pool.execute(
       'SELECT job_id FROM saved_jobs WHERE user_id = ?',
       [req.user.id]
     );
-    res.json({
-      status: 'success',
-      data: savedJobs.map(job => job.job_id)
-    });
+    res.json({ status: 'success', data: savedJobs.map(job => job.job_id) });
   } catch (error) {
     console.error('Error fetching saved jobs:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch saved jobs' });
+  }
+});
+// Get Job by ID Endpoint
+app.get('/api/jobs/:job_id', async (req, res) => {
+  try {
+    const { job_id } = req.params;
+    
+    if (isNaN(parseInt(job_id))) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'Invalid job ID format' 
+      });
+    }
+
+    const [jobs] = await pool.execute(
+      'SELECT * FROM jobs WHERE id = ?',
+      [job_id]
+    );
+
+    if (jobs.length === 0) {
+      return res.status(404).json({ 
+        status: 'error', 
+        message: 'Job not found' 
+      });
+    }
+
+    res.json({ 
+      status: 'success', 
+      data: jobs[0] 
+    });
+  } catch (error) {
+    console.error('Error fetching job by ID:', error);
     res.status(500).json({ 
-      status: 'error',
-      message: 'Failed to fetch saved jobs' 
+      status: 'error', 
+      message: 'Failed to fetch job details' 
     });
   }
 });
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    status: 'error',
-    message: 'Something went wrong!' 
-  });
+
+app.post(
+  '/api/jobs',
+  authenticateToken,
+  [
+    body('title').notEmpty().withMessage('Job title is required'),
+    body('company').notEmpty().withMessage('Company name is required'),
+    body('location').notEmpty().withMessage('Location is required'),
+    body('type').notEmpty().withMessage('Job type is required'),
+    body('skills').notEmpty().withMessage('Skills are required'),
+    body('salary').notEmpty().withMessage('Salary is required'),
+    body('description').notEmpty().withMessage('Description is required'),
+    body('requirements').notEmpty().withMessage('Requirements are required'),
+  ],
+  async (req, res) => {
+    try {
+      console.log('User:', req.user);
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ status: 'error', errors: errors.array() });
+      }
+
+      const { title, company, location, type, skills, salary, description, requirements } = req.body;
+
+      const [result] = await pool.execute(
+        'INSERT INTO jobs (title, company, location, type, description, requirements, salary, skills) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [title, company, location, type, description, requirements, salary, Array.isArray(skills) ? skills.join(',') : skills]
+      );
+
+      res.status(201).json({
+        status: 'success',
+        message: 'Job posted successfully',
+        data: { id: result.insertId, title, company, location, type, skills, salary, description, requirements }
+      });
+    } catch (error) {
+      console.error('Job posting error:', error);
+      res.status(500).json({ status: 'error', message: 'Failed to post job' });
+    }
+  }
+);
+
+
+// Get all jobs for admin
+app.get('/admin/jobs', authenticateToken, requireAdmin, async (req, res) => {
+  console.log('Admin:', req.user);
+  try {
+    const [jobs] = await pool.execute('SELECT * FROM jobs');
+    console.log(jobs);
+    res.json({ status: 'success', data: jobs });
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    res
+      .status(500)
+      .json({ status: 'error', message: 'Failed to fetch jobs' });
+  }
 });
 
-// Start server after checking database connection
+// Delete a job
+app.delete('/admin/jobs/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    
+    const { id } = req.params;
+    
+    await connection.execute('DELETE FROM applications WHERE job_id = ?', [id]);
+  
+    await connection.execute('DELETE FROM saved_jobs WHERE job_id = ?', [id]);
+    
+    await connection.execute('DELETE FROM jobs WHERE id = ?', [id]);
+    
+    await connection.commit();
+    
+    res.json({ status: 'success', message: 'Job deleted successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Delete job error:', error);
+    res
+      .status(500)
+      .json({ 
+        status: 'error', 
+        message: 'Failed to delete job',
+        error: error.message 
+      });
+  } finally {
+    connection.release();
+  }
+});
+
+
+// GET /api/saved-jobs
+app.get('/api/saved-jobs', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT job_id FROM saved_jobs WHERE user_id = ?',
+      [req.user.id]
+    );
+
+    const jobIds = rows.map((row) => row.job_id);
+
+    res.json({ status: 'success', data: jobIds });
+  } catch (error) {
+    console.error('Error fetching saved jobs:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch saved jobs'
+    });
+  }
+});
+
+// GET /api/user/applications
+app.get('/api/user/applications', authenticateToken, async (req, res) => {
+  try {
+    const [applications] = await pool.execute(
+      'SELECT * FROM applications WHERE user_id = ? ORDER BY created_at DESC',
+      [req.user.id]
+    );
+    res.json({ status: 'success', data: applications });
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch applications'
+    });
+  }
+});
+
+
+// Get all users for admin
+app.get('/admin/users', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const [users] = await pool.execute(
+      'SELECT id, email, username, dob, role, created_at FROM users'
+    );
+    res.json({ status: 'success', data: users });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res
+      .status(500)
+      .json({ status: 'error', message: 'Failed to fetch users' });
+  }
+});
+
+// Update user profile endpoint
+app.put('/api/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const { username, email, dob } = req.body;
+
+    if (!username || !email || !dob) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Username, email, and date of birth are required.',
+      });
+    }
+
+    await pool.execute(
+      'UPDATE users SET username = ?, email = ?, dob = ? WHERE id = ?',
+      [username, email, dob, req.user.id]
+    );
+    const [user] = await pool.execute(
+      'SELECT id, username, email, dob FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    res.json({
+      status: 'success',
+      message: 'Profile updated successfully',
+      data: user[0],
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Profile update failed',
+    });
+  }
+});
+
+
+// Delete a user
+app.delete('/admin/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.execute('DELETE FROM applications WHERE user_id = ?', [id]);
+    await pool.execute('DELETE FROM saved_jobs WHERE user_id = ?', [id]);
+
+    await pool.execute('DELETE FROM users WHERE id = ?', [id]);
+
+    res.json({ status: 'success', message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res
+      .status(500)
+      .json({ status: 'error', message: 'Failed to delete user' });
+  }
+});
+
+
+// Get dashboard stats for admin
+app.get('/admin/dashboard/stats', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const [[{ totalJobs }]] = await pool.execute('SELECT COUNT(*) as totalJobs FROM jobs');
+    const [[{ totalUsers }]] = await pool.execute('SELECT COUNT(*) as totalUsers FROM users');
+    const [[{ totalApplications }]] = await pool.execute('SELECT COUNT(*) as totalApplications FROM applications');
+    const [[{ pendingApplications }]] = await pool.execute("SELECT COUNT(*) as pendingApplications FROM applications WHERE status = 'PENDING'");
+    console.log(totalJobs, totalUsers, totalApplications, pendingApplications);
+    res.json({
+      status: 'success',
+      data: { totalJobs, totalUsers, totalApplications, pendingApplications },
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res
+      .status(500)
+      .json({ status: 'error', message: 'Failed to fetch dashboard stats' });
+  }
+});
+
+app.post(
+  '/auth/admin/login',
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+  ],
+  async (req, res) => {
+    try {
+      
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res
+          .status(400)
+          .json({ status: 'error', errors: errors.array() });
+      }
+      const { email, password } = req.body;
+      const [users] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
+
+      if (users.length === 0) {
+        return res
+          .status(401)
+          .json({ status: 'error', message: 'Invalid credentials' });
+      }
+      const user = users[0];
+      if (user.role !== 'admin') {
+        return res
+          .status(403)
+          .json({ status: 'error', message: 'Not authorized as admin' });
+      }
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        console.log(hashedPassword);
+        return res
+          .status(401)
+          .json({ status: 'error', message: 'Invalid credentials' });
+      }
+      const userData = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        dob: user.dob,
+        role: user.role,
+      };
+      const token = jwt.sign(userData, JWT_SECRET, { expiresIn: '1h' });
+      res.json({
+        status: 'success',
+        message: 'Admin login successful',
+        data: { user: userData, token },
+      });
+    } catch (error) {
+      console.error('Admin login error:', error);
+      res.status(500).json({ status: 'error', message: 'Admin login failed' });
+    }
+  }
+);
+
+
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads', 'cvs');
+    
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `cv-${uniqueSuffix}${ext}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['.pdf', '.doc', '.docx'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  
+  if (allowedTypes.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only PDF, DOC, and DOCX files are allowed.'), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024
+  }
+});
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.post('/user/upload-cv', authenticateToken, upload.single('cv'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'No file uploaded or invalid file type' 
+      });
+    }
+
+    const [result] = await pool.execute(
+      'INSERT INTO user_cvs (user_id, filename, original_name, file_path, mime_type) VALUES (?, ?, ?, ?, ?)',
+      [
+        req.user.id,
+        req.file.filename,
+        req.file.originalname,
+        req.file.path,
+        req.file.mimetype
+      ]
+    );
+
+    await pool.execute(
+      'UPDATE users SET cv_id = ? WHERE id = ?',
+      [result.insertId, req.user.id]
+    );
+
+    res.status(201).json({
+      status: 'success',
+      message: 'CV uploaded successfully',
+      data: {
+        id: result.insertId,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        path: `/uploads/cvs/${req.file.filename}`
+      }
+    });
+  } catch (error) {
+    console.error('CV upload error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to upload CV' });
+  }
+});
+
+// Get user's CV
+app.get('/user/cv', authenticateToken, async (req, res) => {
+  try {
+    const [cvs] = await pool.execute(
+      'SELECT * FROM user_cvs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+      [req.user.id]
+    );
+
+    if (cvs.length === 0) {
+      return res.status(404).json({ 
+        status: 'error', 
+        message: 'No CV found for this user' 
+      });
+    }
+
+    res.json({
+      status: 'success',
+      data: {
+        id: cvs[0].id,
+        filename: cvs[0].filename,
+        originalName: cvs[0].original_name,
+        path: `/uploads/cvs/${cvs[0].filename}`,
+        uploadedAt: cvs[0].created_at
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user CV:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch CV' });
+  }
+});
+
+// Update job application endpoint to include CV
+app.post('/api/jobs/:jobId/apply', authenticateToken, async (req, res) => {
+  try {
+    console.log('User');
+    const { jobId } = req.params;
+    const { name, email, coverLetter, cvId } = req.body;
+
+    if (!name || !email || !coverLetter) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Name, email, and cover letter are required'
+      });
+    }
+
+    const [result] = await pool.execute(
+      'INSERT INTO applications (job_id, user_id, name, email, cover_letter, cv_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [jobId, req.user.id, name, email, coverLetter, cvId || null]
+    );
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Application submitted successfully',
+      data: { id: result.insertId, jobId, name, email }
+    });
+  } catch (error) {
+    console.error('Application submission error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to submit application' });
+  }
+});
+
+
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ status: 'error', message: 'Something went wrong!' });
+});
+
 async function startServer() {
   const isConnected = await testConnection();
   if (isConnected) {
@@ -379,4 +780,3 @@ async function startServer() {
 }
 
 startServer();
-
