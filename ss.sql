@@ -1,3 +1,18 @@
+-- Create `users` table
+CREATE TABLE users (
+  id INT NOT NULL AUTO_INCREMENT,
+  email VARCHAR(255) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  username VARCHAR(100) NOT NULL,
+  dob DATE NOT NULL,
+  role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+  PRIMARY KEY (id)
+);
+
+-- Populate `users` table
+INSERT INTO users (id, email, password, username, dob, role) VALUES
+  (3, 'user123@3.com', '$2b$10$VYB6h8NfbaK7YCnw2VTKw.YnbSgR.3K0XbNdqQLAL.N95sl6gdmvi', 'demo', '2025-02-17', 'user'),
+  (5, 'admin@example.com', '$2b$10$xw73tzF0xC2MvVf9IEsbTOAgj2AoC5YgSq9enKIOHiuMPv.dfcxZW', 'admin', '1990-01-01', 'admin');
 
 
 -- Create `applications` table
