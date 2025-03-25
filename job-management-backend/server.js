@@ -228,7 +228,19 @@ app.get('/api/jobs', async (req, res) => {
 });
 
 
-
+// Fetch Jobs Posted by the Logged-in User
+app.get('/api/user/jobs', authenticateToken, async (req, res) => {
+  try {
+    const [jobs] = await pool.execute(
+      'SELECT * FROM jobs WHERE user_id = ?',
+      [req.user.id]
+    );
+    res.json({ status: 'success', data: jobs });
+  } catch (error) {
+    console.error('Error fetching user jobs:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch user jobs' });
+  }
+});
 
 // Fetch User Profile
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
