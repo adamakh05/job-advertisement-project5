@@ -89,6 +89,7 @@ function requireUser(req, res, next) {
       .json({ status: 'error', message: 'User privileges required' });
   }
 }
+
 // Register Endpoint
 app.post(
   '/auth/register',
@@ -137,60 +138,8 @@ app.post(
     }
   }
 );
-// Login Endpoint
-app.post(
-  '/auth/login',
-  [
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').notEmpty().withMessage('Password is required'),
-  ],
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ status: 'error', errors: errors.array() });
-      }
 
-      const { email, password } = req.body;
 
-      const [users] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
-      if (users.length === 0) {
-        return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
-      }
-
-      
-      const user = users[0];
-
-      if (user.role !== 'user') {
-        return res
-          .status(403)
-          .json({ status: 'error', message: 'Not authorized as user' });
-      }
-      const passwordMatch = await bcrypt.compare(password, user.password);
-      if (!passwordMatch) {
-        return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
-      }
-
-      const userData = {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        dob: user.dob
-      };
-
-      const token = jwt.sign(userData, JWT_SECRET, { expiresIn: '1h' });
-
-      res.json({
-        status: 'success',
-        message: 'Login successful',
-        data: { user: userData, token }
-      });
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ status: 'error', message: 'Login failed' });
-    }
-  }
-);
 
 
 // Get Jobs Endpoint
@@ -305,7 +254,6 @@ app.get('/api/saved-jobs', authenticateToken, async (req, res) => {
     res.status(500).json({ status: 'error', message: 'Failed to fetch saved jobs' });
   }
 });
-
 // Get Job by ID Endpoint
 app.get('/api/jobs/:job_id', async (req, res) => {
   try {
