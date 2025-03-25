@@ -59,3 +59,14 @@ INSERT INTO jobs (id, title, company, location, type, salary) VALUES
   (7, 'ss', 'sss', 'ss', 'INTERNSHIP', '12');
 
 
+-- Create `saved_jobs` table
+CREATE TABLE saved_jobs (
+  id INT NOT NULL AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  job_id INT NOT NULL,
+  PRIMARY KEY (id)
+);
+
+-- Populate `saved_jobs` table
+INSERT INTO saved_jobs (id, user_id, job_id) VALUES
+  (9, 3, 2);
