@@ -65,3 +65,42 @@ describe('Job Portal API Tests', () => {
         dob: '1990-01-01',
         role: 'user'
       }]]);
+
+         const response = await request(app)
+        .post('/auth/login')
+        .send({
+          email: 'test@example.com',
+          password: 'password123'
+        });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('success');
+      expect(response.body.data.user).toBeDefined();
+      expect(response.body.data.token).toBeDefined();
+    });
+    
+    test('POST /auth/admin/login - should login an admin', async () => {
+      
+      const hashedPassword = await bcrypt.hash('adminpassword', 10);
+      mockPool.execute.mockResolvedValueOnce([[{
+        id: 1,
+        email: 'admin@example.com',
+        username: 'admin',
+        password: hashedPassword,
+        dob: '1990-01-01',
+        role: 'admin'
+      }]]);
+      
+      const response = await request(app)
+        .post('/auth/admin/login')
+        .send({
+          email: 'admin@example.com',
+          password: 'adminpassword'
+        });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('success');
+      expect(response.body.data.user.role).toBe('admin');
+      expect(response.body.data.token).toBeDefined();
+    });
+  });
