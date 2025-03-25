@@ -37,57 +37,7 @@ async function testConnection() {
     return false;
   }
 }
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
-}));
 
-function authenticateToken(req, res, next) {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    console.log('Received Token:', token);
-
-
-    if (!token) {
-      return res.status(401).json({ status: 'error', message: 'Access denied. No token provided.' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-      console.log(err);
-      if (err) {
-        return res.status(403).json({ status: 'error', message: 'Invalid or expired token' });
-      }
-      req.user = user;
-      next();
-    });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: 'Authentication error' });
-  }
-}
-
-function requireAdmin(req, res, next) {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res
-      .status(403)
-      .json({ status: 'error', message: 'Admin privileges required' });
-  }
-}
-
-function requireUser(req, res, next) {
-  if (req.user) {
-    next();
-  } else {
-    res
-      .status(403)
-      .json({ status: 'error', message: 'User privileges required' });
-  }
-}
 
 // Register Endpoint
 app.post(
