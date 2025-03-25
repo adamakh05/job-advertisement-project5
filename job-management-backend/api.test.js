@@ -104,3 +104,25 @@ describe('Job Portal API Tests', () => {
       expect(response.body.data.token).toBeDefined();
     });
   });
+
+         describe('Job Endpoints', () => {
+    test('GET /api/jobs - should return jobs with filters', async () => {
+      
+      mockPool.execute.mockResolvedValueOnce([[
+        { id: 1, title: 'Software Engineer', company: 'Tech Co', location: 'New York' },
+        { id: 2, title: 'Web Developer', company: 'Web Co', location: 'San Francisco' }
+      ]]);
+      
+      const response = await request(app)
+        .get('/api/jobs')
+        .query({
+          search: 'developer',
+          type: 'full-time',
+          location: 'san',
+          skills: 'javascript,react'
+        });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('success');
+      expect(response.body.data).toHaveLength(2);
+    });
