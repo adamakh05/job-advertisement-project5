@@ -89,54 +89,7 @@ function requireUser(req, res, next) {
       .json({ status: 'error', message: 'User privileges required' });
   }
 }
-// Register Endpoint
-app.post(
-  '/auth/register',
-  [
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('username').notEmpty().withMessage('Username is required'),
-    body('dob').notEmpty().isDate().withMessage('Valid date of birth is required'),
-  ],
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ status: 'error', errors: errors.array() });
-      }
 
-      const { email, password, username, dob } = req.body;
-
-      const [existing] = await pool.execute('SELECT id FROM users WHERE email = ?', [email]);
-      if (existing.length > 0) {
-        return res.status(400).json({ status: 'error', message: 'User already exists' });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const [result] = await pool.execute(
-        'INSERT INTO users (email, password, username, dob) VALUES (?, ?, ?, ?)',
-        [email, hashedPassword, username, dob]
-      );
-
-      const [user] = await pool.execute(
-        'SELECT id, email, username, dob FROM users WHERE id = ?',
-        [result.insertId]
-      );
-
-      const token = jwt.sign(user[0], JWT_SECRET, { expiresIn: '1h' });
-
-      res.status(201).json({
-        status: 'success',
-        message: 'Registration successful',
-        data: { user: user[0], token }
-      });
-    } catch (error) {
-      console.error('Registration error:', error);
-      res.status(500).json({ status: 'error', message: 'Registration failed' });
-    }
-  }
-);
 // Login Endpoint
 app.post(
   '/auth/login',
