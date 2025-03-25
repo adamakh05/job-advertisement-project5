@@ -242,7 +242,19 @@ app.get('/api/user/jobs', authenticateToken, async (req, res) => {
   }
 });
 
-
+// Fetch User Profile
+app.get('/api/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const [user] = await pool.execute(
+      'SELECT id, email, username, dob FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    res.json({ status: 'success', data: user[0] });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch user profile' });
+  }
+});
 
 // Save/Unsave Job Endpoint
 app.post('/api/jobs/:jobId/save', authenticateToken, async (req, res) => {
