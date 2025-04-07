@@ -274,6 +274,3 @@ export const jobService = {
 };
 
 export default api;
-
-
-
