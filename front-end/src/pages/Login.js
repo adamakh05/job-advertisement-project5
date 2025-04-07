@@ -1,168 +1,18 @@
-import React, { useState } from 'react';
-import { Box, Typography, TextField, Button, Paper, Avatar, Grid, Alert } from '@mui/material';
+import React from 'react';
+import { Box, Typography, Paper, Avatar, Grid } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/api';
-
-function LoginForm() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
-
-    const handleSubmit = async (e) => {
-        e.preventDefault(); // prevents default form from being submitted
-        setError(''); // clears previous error messages
-        setLoading(true);
-
-        try {
-            const response = await authService.login(email, password);
-            console.log('Login successful:', response);
-            navigate('/dashboard'); // if successful, user is directed to dashboard page
-        } catch (err) {
-            setError(err.message || 'Failed to login. Please check your credentials.'); // error message and user is directed to try again
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 4, width: '100%', maxWidth: '400px' }}>
-            {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
-                </Alert>
-            )}
-            <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="Email Address"
-                name="email"
-                autoComplete="email"
-                autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                sx={{
-                    '& .MuiInputBase-root': {
-                        borderRadius: '12px',
-                        backgroundColor: '#f8f9fa'
-                    },
-                    mb: 2
-                }}
-            />
-            <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                type="password"
-                id="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                sx={{
-                    '& .MuiInputBase-root': {
-                        borderRadius: '12px',
-                        backgroundColor: '#f8f9fa'
-                    }
-                }}
-            />
-            <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                disabled={loading}
-                sx={{
-                    mt: 4,
-                    mb: 2,
-                    py: 1.5,
-                    bgcolor: '#2196f3',
-                    '&:hover': {
-                        bgcolor: '#1976d2',
-                    },
-                    borderRadius: '12px',
-                    textTransform: 'none',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
-                }}
-            >
-                {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-        </Box>
-    );
-}
-
-function PromoSection() {
-    return (
-        <Box
-            sx={{
-                position: 'relative',
-                height: '100%',
-                backgroundImage: 'url(https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                borderRadius: '0 20px 20px 0',
-                overflow: 'hidden',
-                boxShadow: '0 0 40px rgba(0,0,0,0.1)',
-            }}
-        >
-            <Box
-                sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 100%)',
-                    color: '#fff',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    p: 6,
-                }}
-            >
-                <Typography 
-                    variant="h2" 
-                    sx={{ 
-                        fontWeight: 800, 
-                        mb: 3, 
-                        textAlign: 'center',
-                        textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-                        letterSpacing: '1px'
-                    }}
-                >
-                    Find Your Dream Job
-                </Typography>
-                <Typography 
-                    variant="h6" 
-                    sx={{ 
-                        textAlign: 'center',
-                        maxWidth: '600px',
-                        lineHeight: 1.8,
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.2)',
-                        opacity: 0.9
-                    }}
-                >
-                    Connect with top companies and discover opportunities that align with your passion. 
-                    Your next career milestone starts here.
-                </Typography>
-            </Box>
-        </Box>
-    );
-}
+import { Link } from 'react-router-dom';
+import LoginForm from '../components/LoginForm';
+import PromoSection from '../components/PromoSection';
 
 const Login = () => {
     return (
         <Grid container sx={{ height: '100vh', bgcolor: '#f5f5f5' }}>
             <Grid item xs={false} sm={4} md={7} sx={{ display: { xs: 'none', sm: 'block' } }}>
-                <PromoSection />
+                <PromoSection 
+                    title="Find Your Dream Job"
+                    description="Connect with top companies and discover opportunities that align with your passion. Your next career milestone starts here."
+                />
             </Grid>
             <Grid 
                 item 
@@ -224,8 +74,8 @@ const Login = () => {
                         Don't have an account?
                     </Typography>
                     <Typography 
-                        component="a" 
-                        href="/register" 
+                        component={Link}
+                        to="/register" 
                         variant="body2" 
                         sx={{
                             color: '#2196f3',
@@ -239,6 +89,22 @@ const Login = () => {
                         }}
                     >
                         Register here
+                    </Typography>
+                </Box>
+                <Box sx={{ mt: 1 }}>
+                    <Typography 
+                        component={Link}
+                        to="/admin/login" 
+                        variant="body2" 
+                        sx={{
+                            color: '#757575',
+                            textDecoration: 'none',
+                            '&:hover': {
+                                textDecoration: 'underline',
+                            }
+                        }}
+                    >
+                        Admin Login
                     </Typography>
                 </Box>
             </Grid>
