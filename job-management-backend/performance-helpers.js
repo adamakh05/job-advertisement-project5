@@ -17,4 +17,3 @@ function generateUserCredentials(userContext, events, done) {
 module.exports = {
   generateUserCredentials
 };
-
