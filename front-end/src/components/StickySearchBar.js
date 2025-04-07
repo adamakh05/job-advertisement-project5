@@ -1,4 +1,3 @@
-// src/components/StickySearchBar.jsx
 import React from 'react';
 import { Box, TextField, IconButton, Paper, AppBar, Toolbar, useScrollTrigger } from '@mui/material';
 import { Search, FilterList } from '@mui/icons-material';
