@@ -65,8 +65,8 @@ describe('Job Portal API Tests', () => {
         dob: '1990-01-01',
         role: 'user'
       }]]);
-
-         const response = await request(app)
+      
+      const response = await request(app)
         .post('/auth/login')
         .send({
           email: 'test@example.com',
@@ -104,8 +104,8 @@ describe('Job Portal API Tests', () => {
       expect(response.body.data.token).toBeDefined();
     });
   });
-
-         describe('Job Endpoints', () => {
+  
+  describe('Job Endpoints', () => {
     test('GET /api/jobs - should return jobs with filters', async () => {
       
       mockPool.execute.mockResolvedValueOnce([[
@@ -126,3 +126,83 @@ describe('Job Portal API Tests', () => {
       expect(response.body.status).toBe('success');
       expect(response.body.data).toHaveLength(2);
     });
+    
+    test('GET /api/jobs/:job_id - should return a specific job', async () => {
+      
+      mockPool.execute.mockResolvedValueOnce([[
+        { id: 1, title: 'Software Engineer', company: 'Tech Co', location: 'New York' }
+      ]]);
+      
+      const response = await request(app)
+        .get('/api/jobs/1');
+      
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('success');
+      expect(response.body.data.id).toBe(1);
+      expect(response.body.data.title).toBe('Software Engineer');
+    });
+    
+    test('POST /api/jobs - should create a new job', async () => {
+      
+      const token = jwt.sign({ id: 1, email: 'test@example.com' }, process.env.JWT_SECRET || '121212asasadqweqe1231');
+      
+      
+      mockPool.execute.mockResolvedValueOnce([{ insertId: 1 }]);
+      
+      const jobData = {
+        title: 'Software Engineer',
+        company: 'Tech Co',
+        location: 'New York',
+        type: 'full-time',
+        skills: 'javascript,react',
+        salary: '100000',
+        description: 'Job description',
+        requirements: 'Job requirements'
+      };
+      
+      const response = await request(app)
+        .post('/api/jobs')
+        .set('Authorization', `Bearer ${token}`)
+        .send(jobData);
+      
+      expect(response.status).toBe(201);
+      expect(response.body.status).toBe('success');
+      expect(response.body.data.id).toBe(1);
+      expect(response.body.data.title).toBe(jobData.title);
+    });
+  });
+  
+  describe('Admin Endpoints', () => {
+    let adminToken;
+    
+    beforeEach(() => {
+      
+      adminToken = jwt.sign(
+        { id: 1, email: 'admin@example.com', role: 'admin' },
+        process.env.JWT_SECRET || '121212asasadqweqe1231'
+      );
+    });
+    
+    test('GET /admin/dashboard/stats - should return dashboard stats', async () => {
+      
+      mockPool.execute
+        .mockResolvedValueOnce([[{ totalJobs: 10 }]])
+        .mockResolvedValueOnce([[{ totalUsers: 20 }]])
+        .mockResolvedValueOnce([[{ totalApplications: 30 }]])
+        .mockResolvedValueOnce([[{ pendingApplications: 15 }]]);
+      
+      const response = await request(app)
+        .get('/admin/dashboard/stats')
+        .set('Authorization', `Bearer ${adminToken}`);
+      
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('success');
+      expect(response.body.data.totalJobs).toBe(10);
+      expect(response.body.data.totalUsers).toBe(20);
+      expect(response.body.data.totalApplications).toBe(30);
+      expect(response.body.data.pendingApplications).toBe(15);
+    });
+    
+  
+  });
+});
