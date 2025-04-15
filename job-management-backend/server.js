@@ -50,19 +50,16 @@ function authenticateToken(req, res, next) {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    console.log('Received Token:', token);
-
-
+    
     if (!token) {
       return res.status(401).json({ status: 'error', message: 'Access denied. No token provided.' });
     }
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
-      console.log(err);
       if (err) {
         return res.status(403).json({ status: 'error', message: 'Invalid or expired token' });
       }
-      req.user = user;
+      req.user = user; // This should include the role
       next();
     });
   } catch (error) {
@@ -70,23 +67,85 @@ function authenticateToken(req, res, next) {
   }
 }
 
-function requireAdmin(req, res, next) {
-  if (req.user && req.user.role === 'admin') {
+/**
+ * Middleware to verify user is authenticated
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+function requireUser(req, res, next) {
+  try {
+    if (!req.user) {
+      console.warn('Unauthenticated user attempt:', {
+        path: req.path,
+        method: req.method,
+        ip: req.ip
+      });
+      return res.status(401).json({ 
+        status: 'error', 
+        message: 'Authentication required. Please log in.' 
+      });
+    }
     next();
-  } else {
-    res
-      .status(403)
-      .json({ status: 'error', message: 'Admin privileges required' });
+  } catch (error) {
+    console.error('User verification error:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Internal server error during user verification' 
+    });
   }
 }
 
-function requireUser(req, res, next) {
-  if (req.user) {
+/**
+ * Middleware to verify user has admin privileges
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+function requireAdmin(req, res, next) {
+  try {
+    // First verify basic authentication
+    if (!req.user) {
+      console.warn('Unauthenticated admin attempt:', {
+        path: req.path,
+        method: req.method,
+        ip: req.ip
+      });
+      return res.status(401).json({ 
+        status: 'error', 
+        message: 'Authentication required' 
+      });
+    }
+    
+    // Then verify admin role
+    if (req.user.role !== 'admin') {
+      console.warn('Unauthorized admin attempt:', {
+        userId: req.user.id,
+        userRole: req.user.role,
+        attemptedPath: req.path
+      });
+      return res.status(403).json({ 
+        status: 'error', 
+        message: 'Insufficient privileges. Admin access required.' 
+      });
+    }
+    
+    console.log('Admin access granted to:', {
+      userId: req.user.id,
+      path: req.path
+    });
+    
     next();
-  } else {
-    res
-      .status(403)
-      .json({ status: 'error', message: 'User privileges required' });
+  } catch (error) {
+    console.error('Admin verification error:', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user?.id
+    });
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Internal server error during admin verification' 
+    });
   }
 }
 
@@ -359,7 +418,8 @@ app.post(
   ],
   async (req, res) => {
     try {
-      console.log('User:', req.user);
+      console.log('User from token:', req.user);
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ status: 'error', errors: errors.array() });
@@ -367,22 +427,33 @@ app.post(
 
       const { title, company, location, type, skills, salary, description, requirements } = req.body;
 
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({ status: 'error', message: 'Invalid user token. Cannot post job.' });
+      }
+
+      const finalSkills = Array.isArray(skills) ? skills.join(',') : skills;
+
+      console.log('Posting job with data:', {
+        title, company, location, type, description, requirements, salary, skills: finalSkills, user_id: req.user.id
+      });
+
       const [result] = await pool.execute(
-        'INSERT INTO jobs (title, company, location, type, description, requirements, salary, skills) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [title, company, location, type, description, requirements, salary, Array.isArray(skills) ? skills.join(',') : skills]
+        'INSERT INTO jobs (title, company, location, type, description, requirements, salary, skills, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [title, company, location, type, description, requirements, salary, finalSkills, req.user.id]
       );
 
       res.status(201).json({
         status: 'success',
         message: 'Job posted successfully',
-        data: { id: result.insertId, title, company, location, type, skills, salary, description, requirements }
+        data: { id: result.insertId, title, company, location, type, skills: finalSkills, salary, description, requirements }
       });
     } catch (error) {
       console.error('Job posting error:', error);
-      res.status(500).json({ status: 'error', message: 'Failed to post job' });
+      res.status(500).json({ status: 'error', message: 'Failed to post job', error: error.message });
     }
   }
 );
+
 
 
 // Get all jobs for admin
@@ -560,6 +631,7 @@ app.get('/admin/dashboard/stats', authenticateToken, requireAdmin, async (req, r
   }
 });
 
+// PATCHED /auth/admin/login to include role in token properly
 app.post(
   '/auth/admin/login',
   [
@@ -568,43 +640,39 @@ app.post(
   ],
   async (req, res) => {
     try {
-      
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res
-          .status(400)
-          .json({ status: 'error', errors: errors.array() });
+        return res.status(400).json({ status: 'error', errors: errors.array() });
       }
+
       const { email, password } = req.body;
       const [users] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
 
       if (users.length === 0) {
-        return res
-          .status(401)
-          .json({ status: 'error', message: 'Invalid credentials' });
+        return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
       }
+
       const user = users[0];
+
       if (user.role !== 'admin') {
-        return res
-          .status(403)
-          .json({ status: 'error', message: 'Not authorized as admin' });
+        return res.status(403).json({ status: 'error', message: 'Not authorized as admin' });
       }
+
       const passwordMatch = await bcrypt.compare(password, user.password);
       if (!passwordMatch) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        console.log(hashedPassword);
-        return res
-          .status(401)
-          .json({ status: 'error', message: 'Invalid credentials' });
+        return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
       }
+
       const userData = {
         id: user.id,
         email: user.email,
         username: user.username,
         dob: user.dob,
-        role: user.role,
+        role: user.role // ✅ Include role in JWT
       };
+
       const token = jwt.sign(userData, JWT_SECRET, { expiresIn: '1h' });
+
       res.json({
         status: 'success',
         message: 'Admin login successful',
@@ -616,6 +684,7 @@ app.post(
     }
   }
 );
+
 
 
 
@@ -778,8 +847,6 @@ async function startServer() {
     process.exit(1);
   }
 }
-
-startServer();
 
 
 // Add this at the end of your server.js file
